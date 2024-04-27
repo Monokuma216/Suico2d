@@ -19,41 +19,44 @@ export class MainMenu extends Scene {
 
         const width = this.game.canvas.width;
         const height = this.game.canvas.height;
-        console.log({ width, height });
-        this.matter.world.setBounds(0, 0, width, height);
+
+        this.matter.world.setBounds(0, 0, width / 4, height);
+
+        // Нажатие на I включает дебаг у matter
+        if (!this.input.keyboard) return;
+        this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() !== 'i') return;
+        });
 
         const spawner = new Spawner(this);
 
-        // const apple = new Fruit('apple', this);
-        // apple.createPhysics({ x: 110, y: 700 });
-        //
-        // const apple2 = new Fruit('apple', this);
-        // apple2.createPhysics({ x: 100, y: 800 });
+        const merger = (event: Phaser.Physics.Matter.Events.CollisionStartEvent, bodyA: BodyType, bodyB: BodyType) => {
+            if (bodyA.label.concat(bodyB.label).includes('Rectangle')) return;
 
-        const banana = new Fruit('banana', this);
-        banana.createPhysics({ x: 90, y: 700 });
-        banana.ball.setStatic(true);
+            console.log({ paris: [...event.pairs] });
 
-        const banana2 = new Fruit('banana', this);
-        banana2.createPhysics({ x: 95, y: 700 });
-        banana2.ball.setStatic(true);
-
-        const merger = (event: Phaser.Physics.Matter.Events.CollisionActiveEvent, bodyA: BodyType, bodyB: BodyType) => {
-            if (!bodyA.label.includes('Fruit')) return;
-            if (!bodyB.label.includes('Fruit')) return;
-            if (!bodyA.gameObject || !bodyB.gameObject) {
-                console.log({ event: 'У bodyA или bodyB нет gameObject', bodyA, bodyB });
-                return;
+            for (const pair of event.pairs) {
+                const { bodyA, bodyB } = pair;
+                if (!bodyA.label.includes('Fruit')) return;
+                if (!bodyB.label.includes('Fruit')) return;
+                if (!bodyA.gameObject || !bodyB.gameObject) {
+                    console.log({ event: 'У bodyA или bodyB нет gameObject', bodyA, bodyB });
+                    return;
+                }
+                if (bodyA.gameObject.metadata.size !== bodyB.gameObject.metadata.size) return;
+                console.log({ event, bodyA, bodyB });
+                const mergingFruit = fruitsUtility.merging(bodyA, bodyB, this);
+                if (!mergingFruit) return;
+                const newFruit = fruitsUtility.getCheckNearCollision(mergingFruit, spawner.spawnedFruits);
+                bodyA.gameObject.destroy();
+                bodyB.gameObject.destroy();
+                spawner.addFruit(newFruit);
+                spawner.deleteFruit(bodyA.id);
+                spawner.deleteFruit(bodyB.id);
             }
-            if (bodyA.gameObject.metadata.size !== bodyB.gameObject.metadata.size) return;
-            console.log({ event, bodyA, bodyB });
-            fruitsUtility.merging(bodyA, bodyB, this);
-            bodyA.gameObject.destroy();
-            bodyB.gameObject.destroy();
         };
 
         this.matter.world.on('collisionstart', merger);
-        this.matter.world.on('collisionactive', merger);
 
         EventBus.emit('current-scene-ready', this);
     }

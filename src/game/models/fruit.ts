@@ -1,19 +1,24 @@
-import { Vector } from 'matter';
+import { BodyType, Vector } from 'matter';
 import { Scene } from 'phaser';
 import { type FruitsList } from '../interfaces';
 import { convertColorToHex } from '../utils/Convertors.ts';
 import { fruitsUtility } from '../utils/fruits';
 import MatterPhysics = Phaser.Physics.Matter.MatterPhysics;
 
+const RADIUS: number = 136;
+
 export class Fruit {
     name: keyof FruitsList;
     size: number;
-
+    radius: number;
     color: string;
-    matter: MatterPhysics;
+
     scene: Phaser.Scene;
-    ball: Phaser.Physics.Matter.Sprite;
-    sprite: Phaser.GameObjects.Sprite;
+    matter: MatterPhysics;
+
+    ball?: Phaser.Physics.Matter.Sprite;
+    body?: BodyType;
+    sprite?: Phaser.GameObjects.Sprite;
 
     constructor(name: keyof FruitsList, scene: Scene) {
         const { color, size } = fruitsUtility.getFruitByName(name);
@@ -21,8 +26,11 @@ export class Fruit {
         this.name = name;
         this.size = size;
         this.color = color;
+
         this.scene = scene;
         this.matter = scene.matter;
+
+        this.radius = RADIUS * (this.size / 10);
     }
 
     createSprite(position: Vector) {
@@ -38,7 +46,7 @@ export class Fruit {
         }
 
         const ball = this.matter.add.sprite(position.x, position.y, 'ball', undefined, {
-            shape: { type: 'circle', radius: 136 },
+            shape: { type: 'circle', radius: RADIUS },
             label: `${this.name}Fruit`,
             friction: 0.1,
             mass: this.size,
@@ -48,20 +56,14 @@ export class Fruit {
         ball.metadata = { name: this.name, size: this.size };
 
         ball.setTint(convertColorToHex(this.color));
-        ball.setScale(this.size / 10, this.size / 10);
+        ball.setScale(this.size / 10);
         this.ball = ball;
+        this.body = ball.body as BodyType;
     }
 
-    private getCirclePoints(numSegments: number = 90, radius: number = 45) {
-        const vertices = [];
-        const step: number = 360 / numSegments;
-        for (let i = 0; i < numSegments; i++) {
-            const angle = Phaser.Math.DegToRad(i * step); // Угол в радианах
-            const x = radius * Math.cos(angle);
-            const y = radius * Math.sin(angle);
-            vertices.push({ x, y });
-        }
-        return vertices;
+    checkNearBody(bodys: BodyType[]) {
+        if (!this.body) return;
+        return this.matter.query.region(bodys, this.body.bounds);
     }
 
     destroy() {

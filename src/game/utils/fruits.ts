@@ -43,6 +43,35 @@ function merging(a: BodyType, b: BodyType, scene: Scene) {
     return fruit;
 }
 
+function getCheckNearCollision(fruit: Fruit, checkedFruits: Fruit[]) {
+    if (!fruit.body) return fruit;
+    if (!fruit.ball) return fruit;
+
+    const bodys = checkedFruits.filter(fruit => !!fruit.body).map((fruit) => fruit.body) as BodyType[];
+    const collision = fruit.checkNearBody(bodys);
+    if (!collision) return fruit;
+    if (!collision.length) return fruit;
+
+    let newFruit: Fruit | undefined;
+
+    for (const body of collision) {
+        if (!body) continue;
+        if (!body.gameObject) continue;
+        if (!body.gameObject.metadata) continue;
+        if (body.gameObject.metadata.size !== fruit.size) continue;
+        newFruit = merging(fruit.body, body, fruit.scene);
+        body.gameObject.destroy();
+        fruit.ball.destroy();
+        break;
+    }
+
+    if (!newFruit) {
+        console.log('Не смогли объединить фрукт, фрукт : ', fruit);
+        return fruit;
+    }
+    return getCheckNearCollision(newFruit, checkedFruits);
+}
+
 export const fruitsUtility = {
-    fruits, getNextFruit, getFruitList, getFruitByName, merging,
+    fruits, getNextFruit, getFruitList, getFruitByName, merging, getCheckNearCollision,
 };

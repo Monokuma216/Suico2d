@@ -1,3 +1,4 @@
+import { BodyType } from 'matter';
 import { Scene } from 'phaser';
 import { type FruitsList } from '../interfaces';
 import { Fruit } from '../models/fruit.ts';
@@ -76,5 +77,22 @@ export class Spawner {
 
     addFruit(fruit: Fruit) {
         this.spawnedFruits.push(fruit);
+    }
+
+    deleteFruit(bodyId: number) {
+        const index = this.spawnedFruits.findIndex((fruitLoop) => {
+            if (!fruitLoop) return false;
+            if (!fruitLoop.ball) return false;
+            if (!fruitLoop.ball.body) return false;
+
+            return (fruitLoop.ball.body as BodyType).id === bodyId;
+        });
+
+        if (index <= -1) { return; }
+        this.spawnedFruits.splice(index, 1);
+    }
+
+    getAllBodys() {
+        return this.spawnedFruits.map((fruit) => fruit.ball.body);
     }
 }
